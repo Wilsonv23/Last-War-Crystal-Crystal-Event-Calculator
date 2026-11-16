@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Last War: Survival - Crystal Event Calculator</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  .crystal-glow { text-shadow: 0 0 10px rgba(216, 112, 214, 0.6); }
+  .box-glow { box-shadow: 0 0 20px rgba(124, 58, 237, 0.15); }
+  .fld { width:100%; background:#0f172a; border:1px solid #334155; border-radius:.5rem; padding:.5rem .75rem; font-size:.875rem; font-weight:600; color:#e2e8f0; }
+  .fld:focus { outline:none; border-color:#a855f7; }
+</style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen py-8 px-4 font-sans">
+<div class="max-w-2xl mx-auto bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-8 box-glow">
+
+  <div class="text-center mb-6">
+    <h1 class="text-2xl sm:text-3xl font-extrabold text-purple-400 crystal-glow tracking-wide">Crystal Event Calculator</h1>
+    <p class="text-slate-300 text-xs font-semibold uppercase tracking-widest mt-1">Last War: Survival</p>
+    <p class="text-slate-400 text-sm mt-1">Weekly Amethyst income and a monthly Crystal Shop plan. Updated for the 16 Nov 2026 changes.</p>
+  </div>
+
+  <!-- Tabs -->
+  <div class="flex bg-slate-950/60 border border-slate-800 rounded-xl p-1 mb-5 text-sm font-semibold">
+    <button data-tab="income" class="tab flex-1 py-2 rounded-lg">Income</button>
+    <button data-tab="shop" class="tab flex-1 py-2 rounded-lg">Crystal Shop</button>
+  </div>
+
+  <!-- ============ INCOME ============ -->
+  <section id="tab-income">
+    <div class="space-y-5 bg-slate-950/60 p-5 rounded-xl border border-slate-800/80 mb-5">
+      <div>
+        <label class="block text-sm font-semibold text-slate-300 mb-1.5" for="damageInput">Best single hit this week:</label>
+        <div class="relative">
+          <input type="number" id="damageInput" value="1972208207" min="0" inputmode="numeric"
+            class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 pr-24 text-lg font-bold text-purple-300 focus:outline-none focus:border-purple-500">
+          <div id="damageShort" class="absolute right-3 top-3 text-xs bg-slate-800 px-2.5 py-1 rounded text-slate-300 font-mono">1.97G</div>
+        </div>
+        <p class="text-xs text-slate-500 mt-1">Damage rewards use your best hit of the week, not a running total. They reset weekly.</p>
+        <p id="capNote" class="hidden text-xs text-amber-400 mt-1">Milestones stop at 7.5G, so damage past that earns nothing extra.</p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1" for="dailyClaim">Daily boss claim:</label>
+          <input type="number" id="dailyClaim" value="2500" min="0" class="fld">
+          <p class="text-[11px] text-slate-500 mt-1">Attack the boss each day, Mon–Sat (6×/week)</p>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1" for="factoryLvl">Crystal Factory level:</label>
+          <select id="factoryLvl" class="fld"></select>
+          <p id="factoryNote" class="text-[11px] text-slate-500 mt-1"></p>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1" for="duelTier">Alliance Duel: highest chest tier per day <span class="text-purple-400">NEW</span></label>
+          <select id="duelTier" class="fld"></select>
+          <p class="text-[11px] text-slate-500 mt-1">Chests 1–6 give Amethyst from 16 Nov 2026</p>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1" for="duelDays">Alliance Duel days reached per week:</label>
+          <input type="number" id="duelDays" value="6" min="0" max="6" class="fld">
+          <p class="text-[11px] text-slate-500 mt-1">The Duel runs Mon–Sat</p>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-400 mb-1" for="monthMode">Monthly estimate:</label>
+        <select id="monthMode" class="fld">
+          <option value="4.35">Calendar month (~4.35 weeks)</option>
+          <option value="4">4 weeks</option>
+        </select>
+      </div>
+    </div>
+
+    <h2 class="text-sm font-bold uppercase tracking-wider text-purple-400 border-b border-slate-800 pb-2 mb-3">Weekly Yield</h2>
+    <div id="sources" class="space-y-1.5 mb-3"></div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div class="bg-slate-950/40 border border-slate-800/60 p-4 rounded-xl">
+        <div class="text-xs font-medium text-slate-400">Weekly total</div>
+        <div id="resWeekly" class="text-xl sm:text-2xl font-black text-purple-300 mt-1">0</div>
+      </div>
+      <div class="bg-slate-950/40 border border-slate-800/60 p-4 rounded-xl">
+        <div class="text-xs font-medium text-slate-400">Average per day (7 days)</div>
+        <div id="resDaily" class="text-xl sm:text-2xl font-black text-purple-300 mt-1">0</div>
+      </div>
+    </div>
+
+    <div class="bg-gradient-to-r from-purple-950/40 via-indigo-950/40 to-slate-950 border border-purple-900/50 p-5 rounded-xl">
+      <div id="monthlyLabel" class="text-xs font-bold text-purple-400 uppercase tracking-wider">Estimated monthly total</div>
+      <div id="resMonthly" class="text-3xl sm:text-4xl font-black text-white mt-1 crystal-glow">0</div>
+      <p class="text-[11px] text-slate-400 mt-2">Season achievement chests are not included. They pay 5,000 each, once per season: 1M damage dealt, and 15, 30, 60, 100 and 140 attacks.</p>
+    </div>
+
+    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mt-6 mb-3">Damage milestones (best hit, reset weekly)</h3>
+    <div id="stageBreakdown" class="space-y-2"></div>
+  </section>
+
+  <!-- ============ SHOP ============ -->
+  <section id="tab-shop" class="hidden">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-950/60 p-5 rounded-xl border border-slate-800/80 mb-5">
+      <div>
+        <label class="block text-xs font-semibold text-slate-400 mb-1" for="balance">Current Amethyst balance:</label>
+        <input type="number" id="balance" value="0" min="0" class="fld">
+        <p class="text-[11px] text-slate-500 mt-1">Unspent Amethyst carries over each month</p>
+      </div>
+      <div>
+        <div class="text-xs font-semibold text-slate-400 mb-1">Expected income this month:</div>
+        <div id="shopIncome" class="fld text-purple-300">0</div>
+        <p class="text-[11px] text-slate-500 mt-1">From the Income tab</p>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap gap-2 mb-3">
+      <button id="suggestBtn" class="bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg">Fill suggested plan</button>
+      <button id="clearBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold px-3 py-1.5 rounded-lg">Clear</button>
+    </div>
+
+    <div id="shopList" class="space-y-2"></div>
+
+    <div class="mt-4 bg-gradient-to-r from-purple-950/40 via-indigo-950/40 to-slate-950 border border-purple-900/50 p-5 rounded-xl">
+      <div class="grid grid-cols-3 gap-3 text-center">
+        <div><div class="text-[11px] text-slate-400">Available</div><div id="shopAvail" class="text-lg font-black text-white">0</div></div>
+        <div><div class="text-[11px] text-slate-400">Planned spend</div><div id="shopSpend" class="text-lg font-black text-purple-300">0</div></div>
+        <div><div class="text-[11px] text-slate-400">Left over</div><div id="shopLeft" class="text-lg font-black">0</div></div>
+      </div>
+      <p id="shopWarn" class="hidden text-xs text-amber-400 mt-3 text-center">This plan costs more than you'll have this month.</p>
+      <p class="text-[11px] text-slate-400 mt-3">Shop limits reset on the 1st of each month. The 1h Speed-up costs Crystal Ore, not Amethyst, so it isn't listed here.</p>
+      <p class="text-[11px] text-slate-400 mt-1">The suggested plan follows Cpt Hedge's priority: Silver Bricks for the value packs you use, then Total Mobilization vouchers, then Gold Bricks. It stops when you run out of Amethyst. Change any number to fit the events you play.</p>
+    </div>
+  </section>
+
+  <!-- Copy -->
+  <div class="mt-5 flex justify-between items-center gap-3">
+    <span id="copyStatus" class="text-xs text-purple-300"></span>
+    <button id="copyBtn" class="bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg">Copy summary for Discord</button>
+  </div>
+  <textarea id="copyFallback" readonly class="hidden mt-3 w-full h-40 bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs font-mono text-slate-200"></textarea>
+
+  <div class="mt-8 text-center text-xs text-slate-500 italic">
+    Damage rewards pay 60 Amethyst per full step. Weapon: every 5M past 300M · Armor: every 7M past 800M · Radar: every 7M past 1.5G · Chip: every 23M past 2.2G · Boss: every 30M past 4.5G, up to 7.5G.
+  </div>
+  <div class="mt-2 text-center text-[11px] text-slate-500">
+    Data: in-game rules and the 16 Nov 2026 update notice, plus <a href="https://cpt-hedge.com/guides/crystal-event" class="underline hover:text-slate-300">Cpt Hedge's Crystal Event guide</a>.
+  </div>
+  <div class="mt-3 text-center text-xs text-purple-300/80 font-semibold">Created by: BruGattii/Ac3V3ntura</div>
+</div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const fmt = n => Math.round(n).toLocaleString('en-US');
+  const short = n => n >= 1e9 ? (n/1e9).toFixed(2)+'G' : n >= 1e6 ? (n/1e6).toFixed(1)+'M' : n >= 1e3 ? (n/1e3).toFixed(1)+'K' : String(Math.round(n));
+
+  const STAGES = [
+    { name: 'Weapon', from: 300e6,  to: 800e6,  step: 5e6 },
+    { name: 'Armor',  from: 800e6,  to: 1500e6, step: 7e6 },
+    { name: 'Radar',  from: 1500e6, to: 2200e6, step: 7e6 },
+    { name: 'Chip',   from: 2200e6, to: 4500e6, step: 23e6 },
+    { name: 'Boss',   from: 4500e6, to: 7500e6, step: 30e6 },
+  ];
+  // Crystal Factory: output per 3hr and max production hours, Lv.1–25
+  const FACTORY = [4,8,12,16,20,24,28,32,36,40,44,48,52,56,60,66,72,78,84,90,98,107,121,134,147];
+  const FACTORY_MAX_H = [48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,64,66,68,70,72,74,76,78,80,82];
+  // Alliance Duel points chests (from 16 Nov 2026): Amethyst per chest tier
+  const DUEL = [500, 500, 1500, 1000, 1000, 2000];
+  // Crystal Shop, monthly limits as of 16 Nov 2026
+  const SHOP = [
+    { id:'silver',  name:'Silver Brick ×5,000',            cost:5000,  limit:50, was:30, note:'Buys packs in Glittering Market, Bounty Hunter, Bullseye Loot and Ammo Bonanza. Glitter Coin Value Pack III limit rises from 5 to 15.' },
+    { id:'tmv',     name:'Total Mobilization Pack Voucher', cost:5000,  limit:18, was:6,  note:'Paid Total Mobilization pack limits drop to 1–2 from 17 Nov, so vouchers matter more.' },
+    { id:'gold',    name:'Gold Brick ×500',                 cost:5000,  limit:24, was:12, note:'' },
+    { id:'abp',     name:'Advanced Battle Pass Voucher I',  cost:5000,  limit:4,  note:'' },
+    { id:'pbp',     name:'Premium Battle Pass Voucher I',   cost:20000, limit:2,  note:'' },
+    { id:'weekly',  name:"Weekly Pass 'Take All' Voucher",  cost:20000, limit:2,  was:1,  note:'Cpt Hedge says to skip this unless you need everything it activates.' },
+    { id:'dia',     name:'100 Diamonds',                    cost:500,   limit:80, note:'' },
+  ];
+  const qty = Object.fromEntries(SHOP.map(s => [s.id, 0]));
+  let monthlyIncome = 0, summaryText = '', shopSummary = '';
+
+  // Populate selects
+  $('factoryLvl').innerHTML = FACTORY.map((o,i) => `<option value="${i}" ${i===24?'selected':''}>Lv.${i+1} (${o} per 3hr)</option>`).join('');
+  let cum = 0;
+  $('duelTier').innerHTML = ['<option value="0">None (0)</option>'].concat(DUEL.map((d,i) => { cum += d; return `<option value="${i+1}" ${i===5?'selected':''}>Chest ${i+1} (${fmt(cum)}/day)</option>`; })).join('');
+
+  // Shop rows
+  $('shopList').innerHTML = SHOP.map(s => `
+    <div class="bg-slate-950/40 border border-slate-800/60 rounded-lg px-3 py-2.5">
+      <div class="flex items-center justify-between gap-3">
+        <div class="min-w-0">
+          <div class="text-sm font-semibold text-slate-200">${s.name}</div>
+          <div class="text-[11px] text-slate-400">${fmt(s.cost)} each · limit ${s.limit}/month${s.was ? ` <span class="text-emerald-400">(was ${s.was})</span>` : ''}</div>
+        </div>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button data-dec="${s.id}" class="w-7 h-7 rounded bg-slate-800 hover:bg-slate-700 text-slate-200">−</button>
+          <input type="number" data-qty="${s.id}" value="0" min="0" max="${s.limit}" class="w-14 bg-slate-900 border border-slate-700 rounded px-1 py-1 text-center text-sm font-bold text-purple-300 focus:outline-none focus:border-purple-500">
+          <button data-inc="${s.id}" class="w-7 h-7 rounded bg-slate-800 hover:bg-slate-700 text-slate-200">+</button>
+        </div>
+      </div>
+      <div class="flex justify-between mt-1 text-[11px]">
+        <span class="text-slate-500">${s.note}</span>
+        <span id="sub-${s.id}" class="font-mono text-slate-300 shrink-0 ml-2">0</span>
+      </div>
+    </div>`).join('');
+
+  function milestones(hit) {
+    let total = 0;
+    const rows = STAGES.map(s => {
+      const span = s.to - s.from;
+      const dmg = Math.max(0, Math.min(hit, s.to) - s.from);
+      const steps = Math.floor(dmg / s.step);
+      total += steps * 60;
+      return { ...s, dmg, crys: steps * 60, maxCrys: Math.floor(span / s.step) * 60,
+               leftover: dmg - steps * s.step, pct: dmg / span, active: hit > s.from && hit < s.to };
+    });
+    return { total, rows };
+  }
+
+  function updateIncome() {
+    const hit = Math.max(0, parseFloat($('damageInput').value) || 0);
+    const claim = Math.max(0, parseFloat($('dailyClaim').value) || 0);
+    const lvl = parseInt($('factoryLvl').value, 10);
+    const tier = parseInt($('duelTier').value, 10);
+    const duelDays = Math.min(6, Math.max(0, parseInt($('duelDays').value, 10) || 0));
+    const weeks = parseFloat($('monthMode').value);
+
+    $('damageShort').textContent = short(hit);
+    $('capNote').classList.toggle('hidden', hit <= 7.5e9);
+    $('factoryNote').textContent = `Runs 7 days. Collect at least every ${FACTORY_MAX_H[lvl]}hr or it stops.`;
+
+    const { total: mile, rows } = milestones(hit);
+    const claims = claim * 6;
+    const duelPerDay = DUEL.slice(0, tier).reduce((a,b) => a+b, 0);
+    const duel = duelPerDay * duelDays;
+    const factory = FACTORY[lvl] * 56;
+    const weekly = mile + claims + duel + factory;
+    monthlyIncome = Math.floor(weekly * weeks);
+
+    const sources = [
+      ['Damage milestones', mile, `best hit ${short(hit)}`],
+      ['Daily boss claims', claims, `${fmt(claim)} × 6 days`],
+      ['Alliance Duel chests', duel, `${fmt(duelPerDay)} × ${duelDays} days`, true],
+      ['Crystal Factory', factory, `Lv.${lvl+1}: ${FACTORY[lvl]} per 3hr × 56`],
+    ];
+    $('sources').innerHTML = sources.map(([n, v, d, isNew]) => `
+      <div class="flex justify-between items-baseline bg-slate-950/40 border border-slate-800/60 rounded-lg px-3 py-2">
+        <span class="text-xs text-slate-300">${n}${isNew ? ' <span class="text-[10px] text-purple-400 font-bold">NEW</span>' : ''} <span class="text-[11px] text-slate-500">· ${d}</span></span>
+        <span class="font-mono text-sm text-purple-300">${fmt(v)}</span>
+      </div>`).join('');
+
+    $('resWeekly').textContent = fmt(weekly) + ' Amethyst';
+    $('resDaily').textContent = fmt(weekly / 7) + ' Amethyst';
+    $('resMonthly').textContent = fmt(monthlyIncome) + ' Amethyst';
+    $('monthlyLabel').textContent = weeks === 4 ? 'Estimated 4-week total' : 'Estimated calendar-month total';
+
+    $('stageBreakdown').innerHTML = rows.map(r => {
+      let note;
+      if (r.dmg === 0) note = `<span class="text-slate-600">not reached; starts at ${short(r.from)}</span>`;
+      else if (r.pct >= 1) note = `<span class="text-emerald-400">maxed</span>`;
+      else note = `${short(r.step - r.leftover)} more on your best hit for the next +60`;
+      return `
+        <div class="bg-slate-950/40 border ${r.active ? 'border-purple-800/70' : 'border-slate-800/60'} rounded-lg px-3 py-2">
+          <div class="flex justify-between text-xs">
+            <span class="font-semibold text-slate-200">${r.name} <span class="text-slate-500 font-normal">${short(r.from)}–${short(r.to)}</span></span>
+            <span class="font-mono text-purple-300">+${fmt(r.crys)} / ${fmt(r.maxCrys)}</span>
+          </div>
+          <div class="h-1.5 bg-slate-800 rounded mt-1.5 overflow-hidden"><div class="h-full bg-purple-500" style="width:${(Math.min(1,r.pct)*100).toFixed(1)}%"></div></div>
+          <div class="text-[11px] text-slate-400 mt-1">${note}</div>
+        </div>`;
+    }).join('');
+
+    summaryText =
+      `💎 **Crystal Event Summary** 💎\n` +
+      `- Best hit: ${fmt(hit)} (${short(hit)})\n` +
+      `- Damage milestones: ${fmt(mile)}/week\n` +
+      `- Boss claims: ${fmt(claims)}/week\n` +
+      `- Alliance Duel chests: ${fmt(duel)}/week\n` +
+      `- Crystal Factory Lv.${lvl+1}: ${fmt(factory)}/week\n` +
+      `- **Weekly total: ${fmt(weekly)} Amethyst**\n` +
+      `- ${weeks === 4 ? '4 weeks' : 'Month'}: ${fmt(monthlyIncome)} Amethyst`;
+    updateShop();
+  }
+
+  function updateShop() {
+    const bal = Math.max(0, parseFloat($('balance').value) || 0);
+    const avail = bal + monthlyIncome;
+    let spend = 0;
+    const lines = [];
+    SHOP.forEach(s => {
+      const q = qty[s.id];
+      const el = document.querySelector(`[data-qty="${s.id}"]`);
+      if (document.activeElement !== el) el.value = q;
+      const sub = q * s.cost;
+      spend += sub;
+      $('sub-' + s.id).textContent = q ? `−${fmt(sub)}` : '0';
+      if (q) lines.push(`  • ${s.name} ×${q} (${fmt(sub)})`);
+    });
+    const left = avail - spend;
+    $('shopIncome').textContent = fmt(monthlyIncome);
+    $('shopAvail').textContent = fmt(avail);
+    $('shopSpend').textContent = fmt(spend);
+    $('shopLeft').textContent = fmt(left);
+    $('shopLeft').className = 'text-lg font-black ' + (left < 0 ? 'text-red-400' : 'text-emerald-400');
+    $('shopWarn').classList.toggle('hidden', left >= 0);
+    shopSummary = lines.length
+      ? `\n🛒 **Crystal Shop plan** (${fmt(spend)} of ${fmt(avail)})\n` + lines.join('\n')
+      : '';
+    $('copyFallback').value = summaryText + shopSummary;
+  }
+
+  function setQty(id, v) {
+    const s = SHOP.find(x => x.id === id);
+    qty[id] = Math.min(s.limit, Math.max(0, Math.floor(v) || 0));
+    updateShop();
+  }
+
+  function suggest() {
+    let budget = Math.max(0, parseFloat($('balance').value) || 0) + monthlyIncome;
+    SHOP.forEach(s => qty[s.id] = 0);
+    const take = (id, n) => {
+      const s = SHOP.find(x => x.id === id);
+      const can = Math.min(n - qty[id], s.limit - qty[id], Math.floor(budget / s.cost));
+      if (can > 0) { qty[id] += can; budget -= can * s.cost; }
+    };
+    take('silver', 17);   // value packs (Cpt Hedge step 1)
+    take('tmv', 18);      // Total Mobilization vouchers
+    take('gold', 24);     // Gold Bricks
+    take('silver', 50);   // remaining Silver Bricks
+    updateShop();
+  }
+
+  // Tabs
+  function showTab(t) {
+    document.querySelectorAll('.tab').forEach(b => {
+      const on = b.dataset.tab === t;
+      b.className = 'tab flex-1 py-2 rounded-lg ' + (on ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-slate-200');
+    });
+    $('tab-income').classList.toggle('hidden', t !== 'income');
+    $('tab-shop').classList.toggle('hidden', t !== 'shop');
+  }
+  document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+
+  // Events
+  ['damageInput','dailyClaim','duelDays'].forEach(id => $(id).addEventListener('input', updateIncome));
+  ['factoryLvl','duelTier','monthMode'].forEach(id => $(id).addEventListener('change', updateIncome));
+  $('balance').addEventListener('input', updateShop);
+  $('shopList').addEventListener('click', e => {
+    const inc = e.target.dataset.inc, dec = e.target.dataset.dec;
+    if (inc) setQty(inc, qty[inc] + 1);
+    if (dec) setQty(dec, qty[dec] - 1);
+  });
+  $('shopList').addEventListener('input', e => { if (e.target.dataset.qty) setQty(e.target.dataset.qty, parseFloat(e.target.value)); });
+  $('shopList').addEventListener('change', e => { if (e.target.dataset.qty) e.target.value = qty[e.target.dataset.qty]; });
+  $('suggestBtn').addEventListener('click', suggest);
+  $('clearBtn').addEventListener('click', () => { SHOP.forEach(s => qty[s.id] = 0); updateShop(); });
+
+  $('copyBtn').addEventListener('click', async () => {
+    const status = $('copyStatus');
+    const text = summaryText + shopSummary;
+    try {
+      await navigator.clipboard.writeText(text);
+      status.textContent = 'Copied!';
+      $('copyFallback').classList.add('hidden');
+      setTimeout(() => { status.textContent = ''; }, 2000);
+    } catch (e) {
+      const ta = $('copyFallback');
+      ta.classList.remove('hidden'); ta.focus(); ta.select();
+      status.textContent = 'Clipboard blocked. Copy the text below instead.';
+    }
+  });
+
+  showTab('income');
+  updateIncome();
+</script>
+</body>
+</html>
